@@ -1,8 +1,8 @@
 import { Card, Col, Container, Row,Button } from "reactstrap";
 import CustomCard from "../components/global/CustomCard";
-import burnvault from "./burnVaultAbi";
+//import burnvault from "./burnVaultAbi";
 import web3 from "../web3";
-import black from "./blackAbi";
+//import black from "./blackAbi";
 import React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
@@ -10,6 +10,10 @@ import { Modal,InputGroup,FormControl } from "react-bootstrap";
 import Popup from "../Popup";
 import Modald from "../ModalD";
 import FolowStepsd from "../FolowStepsd";
+
+
+import { contracts } from './contractAddress';
+import {blackabi ,burnvault} from './abi';
 
 const BurnVault = () => {
     const [modalShow1, setModalShow1] = React.useState(false);
@@ -29,21 +33,26 @@ const BurnVault = () => {
     var [date1, setdate1]=useState("");
     var [time1, settime1]=useState("");
     const [lock1 ,setlock1]=useState("");
+
+    const blackcontract = new web3.eth.Contract(blackabi, contracts.black.address);
+    const burnvaultcontract = new web3.eth.Contract(burnvault, contracts.burnvault.address);
+
+
     const bvb = async() => {
         if(localStorage.getItem("wallet")>0){
         let account = await web3.eth.getAccounts();
         
-        setId1(await black.methods.balanceOf(account[0]).call());
-        var maxtx  = await burnvault.methods.maxTxAmount().call();
+        setId1(await blackcontract.methods.balanceOf(account[0]).call());
+        var maxtx  = await burnvaultcontract.methods.maxTxAmount().call();
         setmaxt(maxtx);
-        var circulate = await burnvault.methods.getCirculatingSupply().call();
-        var balance = await burnvault.methods.getBurnVaultBNBBalance().call();
+        var circulate = await burnvaultcontract.methods.getCirculatingSupply().call();
+        var balance = await burnvaultcontract.methods.getBurnVaultBNBBalance().call();
         setId2(circulate/(balance/1000000000000000000));
-        setId3(await burnvault.methods.getBurnVaultBLACKBalance().call());
-        var burnbalan  = await burnvault.methods.senderBurnBalance(account[0]).call();
+        setId3(await burnvaultcontract.methods.getBurnVaultBLACKBalance().call());
+        var burnbalan  = await burnvaultcontract.methods.senderBurnBalance(account[0]).call();
         var bb = maxta - burnbalan;
         setburn(bb/1000000000);
-        const checklock = await burnvault.methods.lock(account[0]).call();
+        const checklock = await burnvaultcontract.methods.lock(account[0]).call();
         setlct(checklock);
         //var loc = await burnvault.methods.secondsLeft(account[0]).call();
 //var now = new Date().getTime();
@@ -53,7 +62,7 @@ const BurnVault = () => {
         //   else{
         //     setlct(false);
         //   }
-        var loc = await burnvault.methods.secondsLeft(account[0]).call();
+        var loc = await burnvaultcontract.methods.secondsLeft(account[0]).call();
         // var ff=new Date(loc*1000);
         // setdate1(ff.toDateString());
         // var hours = ff.getHours();
@@ -104,7 +113,7 @@ const BurnVault = () => {
 
       
 
-        var allowan = await black.methods.allowance(account[0],"0x4508Aa1C69a431a550428A282aE3643B9f5Ed325").call();
+        var allowan = await blackcontract.methods.allowance(account[0],contracts.burnvault.address).call();
        if(allowan == 0){
         setId4(true);
         }
@@ -123,7 +132,7 @@ const BurnVault = () => {
     const approve = async() => {
         let account = await web3.eth.getAccounts();
         let amount = 1000000000000000000 +"000000000000000000";
-        await black.methods.approve("0x4508Aa1C69a431a550428A282aE3643B9f5Ed325",amount).send({from:account[0]});
+        await blackcontract.methods.approve(contracts.burnvault.address,amount).send({from:account[0]});
         bvb();
         setIsOpen(true); 
         setDis("Approved successfully");
@@ -140,8 +149,8 @@ const BurnVault = () => {
 
 
         var myfunct=async()=>{
-            var circulate = await burnvault.methods.getCirculatingSupply().call();
-            var balance = await burnvault.methods.getBurnVaultBNBBalance().call();         
+            var circulate = await burnvaultcontract.methods.getCirculatingSupply().call();
+            var balance = await burnvaultcontract.methods.getBurnVaultBNBBalance().call();         
           // setId6(circulate/(balance/1000000000000000000));         
             var a = document.getElementById("tid5").value;            
             var b =   (a * 1000000000) / (circulate/(balance/1000000000000000000));
@@ -155,9 +164,9 @@ const BurnVault = () => {
          
             let account = await web3.eth.getAccounts();
          
-            var maxtx  = await burnvault.methods.maxTxAmount().call();
+            var maxtx  = await burnvaultcontract.methods.maxTxAmount().call();
             
-             var burnbalan  = await burnvault.methods.senderBurnBalance(account[0]).call();
+             var burnbalan  = await burnvaultcontract.methods.senderBurnBalance(account[0]).call();
               var bb = maxtx - burnbalan;
              console.log(bb);
              var burnab1=(bb/1000000000);                
@@ -167,7 +176,7 @@ const BurnVault = () => {
             if( a <= burnab1){
                 let amount = a * 1000000000;
              
-             await burnvault.methods.swap(amount).send({from:account[0]});
+             await burnvaultcontract.methods.swap(amount).send({from:account[0]});
              setModalShow1(false);
              setIsOpen(true); 
              setDis("Successfully Swapped");
@@ -204,7 +213,7 @@ const BurnVault = () => {
               <Modal.Header className="myModal" style={{backgroundColor:"#f5584b",color:"white"}} closeButton>
                  
                 <Modal.Title id="contained-modal-title-vcenter" >
-                  Amount to Swap
+                  Swap
                 </Modal.Title><br/><br/>
                
               </Modal.Header>
