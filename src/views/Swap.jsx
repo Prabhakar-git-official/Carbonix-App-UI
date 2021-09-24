@@ -5,14 +5,17 @@ import { Link, useHistory } from "react-router-dom";
 import Popup from "../Popup";
 import { Button, Dropdown, Card, Col, Container, DropdownItem, DropdownMenu, DropdownToggle, Input, InputGroup, InputGroupAddon, InputGroupButtonDropdown, InputGroupText, Row, Table } from "reactstrap";
 import web3 from "../web3";
-import swap from "./swapAbi";
-import cbusd from "./cbusdAbi";
-import valutadapter from"./vaultAdapterAbi";
-import busd from "./busdAbi";
+//import swap from "./swapAbi";
+//import cbusd from "./cbusdAbi";
+//import valutadapter from"./vaultAdapterAbi";
+//import busd from "./busdAbi";
 import Modald from "../ModalD";
 import FolowStepsd from "../FolowStepsd";
 import BigNumber from 'bignumber.js';
 //import styles from ".././FolowSteps.module.sass";
+
+import { contracts } from './contractAddress';
+import {swap,cbusd,vaultAdapterAbi,busd} from './abi';
 
 const Swap = () => {
     let [activeTab, setActiveTab] = useState("Deposit");
@@ -39,14 +42,19 @@ const Swap = () => {
     const [isOpen, setIsOpen] = useState(false);
     var[dis,setDis] = useState("");
     
+    const swapcontract = new web3.eth.Contract(swap, contracts.swap.address);
+    const cbusdcontract = new web3.eth.Contract(cbusd, contracts.cbusd.address);
+    const vaaultadaptercontract = new web3.eth.Contract(vaultAdapterAbi, contracts.vaultadapter.address);
+    const busdcontract = new web3.eth.Contract(busd, contracts.busd.address);
+
  const first = async () => {
      if(localStorage.getItem("wallet")>0){
     const accounts =  await web3.eth.getAccounts(); 
-    setcbusdbalance(await cbusd.methods.balanceOf(accounts[0]).call());  
-    setTotalcbusddepo(await cbusd.methods.balanceOf("0xEc929bb652FC3e5fDa67B5Fb50f19565a8248B5b").call());
-    setTotalbusddepo(await busd.methods.balanceOf("0xEc929bb652FC3e5fDa67B5Fb50f19565a8248B5b").call());
-    setTotalbusdonalpaca(await swap.methods.getVaultTotalDeposited(0).call());
-    let b= await cbusd.methods.allowance(accounts[0],"0xEc929bb652FC3e5fDa67B5Fb50f19565a8248B5b").call();
+    setcbusdbalance(await cbusdcontract.methods.balanceOf(accounts[0]).call());  
+    setTotalcbusddepo(await cbusdcontract.methods.balanceOf(contracts.swap.address).call());
+    setTotalbusddepo(await busdcontract.methods.balanceOf(contracts.swap.address).call());
+    setTotalbusdonalpaca(await swapcontract.methods.getVaultTotalDeposited(0).call());
+    let b= await cbusdcontract.methods.allowance(accounts[0],contracts.swap.address).call();
  
     if(b>0){
       setAP(true);
@@ -54,7 +62,7 @@ const Swap = () => {
     else{
       setAP(false);
     }
-     var depositedcbusd= await swap.methods.depositedCfTokens(accounts[0]).call();
+     var depositedcbusd= await swapcontract.methods.depositedCfTokens(accounts[0]).call();
      if(depositedcbusd == 0){
         values[0]=0;
         values[1]=0;
@@ -65,13 +73,13 @@ const Swap = () => {
      }
 else{
     var userdetail=[];
-    userdetail=await swap.methods.userInfo(accounts[0]).call();
+    userdetail=await swapcontract.methods.userInfo(accounts[0]).call();
     console.log("displaydetail",userdetail);
    setValues(userdetail);
    console.log("display");
 }
    
-    setTotalvalueLocked(await valutadapter.methods.totalValue().call());
+    setTotalvalueLocked(await vaaultadaptercontract.methods.totalValue().call());
     
     }
    
@@ -94,7 +102,7 @@ else{
         // console.log("value",x.toNumber());
         // var value = x.toNumber();
         if(parseInt(value)<=parseInt(cbusdbalance)){
-            await swap.methods.stake(web3.utils.toBN(value)).send({from:accounts[0]});
+            await swapcontract.methods.stake(web3.utils.toBN(value)).send({from:accounts[0]});
             first()
             setIsOpen(true);        
             setDis("Deposited succesfully");
@@ -119,7 +127,7 @@ else{
         // console.log("value",x.toNumber());
         // var value = x.toNumber();
         if(parseInt(value)<=parseInt(values[0])){
-            await swap.methods.unstake(web3.utils.toBN(value)).send({from:accounts[0]});
+            await swapcontract.methods.unstake(web3.utils.toBN(value)).send({from:accounts[0]});
             first()
             setIsOpen(true);
             setDis("withdrawn succesfully")
@@ -137,7 +145,7 @@ else{
         event.preventDefault();
         const accounts =  await web3.eth.getAccounts();
         if(parseInt(values[2]) >parseInt(0)){
-          await swap.methods.transmute().send({from:accounts[0]});
+          await swapcontract.methods.transmute().send({from:accounts[0]});
           first()
           setIsOpen(true);
           setDis("Stabilize succesfully !")
@@ -154,7 +162,7 @@ else{
         event.preventDefault();
         const accounts =  await web3.eth.getAccounts();
         if(parseInt(values[3]) >parseInt(0)){
-          await swap.methods.transmuteClaimAndWithdraw().send({from:accounts[0]});
+          await swapcontract.methods.transmuteClaimAndWithdraw().send({from:accounts[0]});
           first()
           setIsOpen(true);
           setDis("Claim and withdraw succesfully")
@@ -251,7 +259,7 @@ else{
       const approve = async() => {
         let account = await web3.eth.getAccounts();
         let amount = 1000000000000000000 +"000000000000000000"; 
-        await cbusd.methods.approve("0xEc929bb652FC3e5fDa67B5Fb50f19565a8248B5b",amount).send({from:account[0]});
+        await cbusdcontract.methods.approve(contracts.swap.address,amount).send({from:account[0]});
         first()
         setIsOpen(true);
         setDis("Approved Succesfully");
