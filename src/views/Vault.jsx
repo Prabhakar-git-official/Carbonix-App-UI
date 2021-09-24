@@ -1,16 +1,19 @@
 import { useEffect } from "react";
 import { useState } from "react";
 import web3 from "../web3";
-import busd from "./busdAbi";
-import cbusd from "./cbusdAbi";
+//import busd from "./busdAbi";
+//import cbusd from "./cbusdAbi";
 import { Link, useHistory } from "react-router-dom";
 import { Button, Dropdown, Card, Col, Container, DropdownItem, DropdownMenu, DropdownToggle, Input, InputGroup, InputGroupAddon, InputGroupButtonDropdown, InputGroupText, Row } from "reactstrap";
-import CFI from "./carbonFinanceAbi";
+//import CFI from "./carbonFinanceAbi";
 import { useDebugValue } from "react";
 import Popup from "../Popup";
 import Modald from "../ModalD";
 import FolowStepsd from "../FolowStepsd";
 import BigNumber from 'bignumber.js';
+
+import { contracts } from './contractAddress';
+import {busd,cbusd,carbonfinance} from './abi';
 
 const Vault = () => {
     // window.onbeforeunload = () => {
@@ -53,24 +56,29 @@ const Vault = () => {
     useEffect(() => {
         document.getElementById("header-title").innerText = "Vault";
     })
+
+    const busdcontract = new web3.eth.Contract(busd, contracts.busd.address);
+    const cbusdcontract = new web3.eth.Contract(cbusd, contracts.cbusd.address);
+    const carbonfinancecontract = new web3.eth.Contract(carbonfinance, contracts.carbonfinance.address);
+
     const overall = async() =>{
         if(localStorage.getItem("wallet")>0){
         const accounts =  await web3.eth.getAccounts();
-        var totaldeposit = await CFI.methods.getCdpTotalDeposited(accounts[0]).call();
+        var totaldeposit = await carbonfinancecontract.methods.getCdpTotalDeposited(accounts[0]).call();
         setTotaldeposit(totaldeposit);
-        var totaldebited = await CFI.methods.getCdpTotalDebt(accounts[0]).call();
+        var totaldebited = await carbonfinancecontract.methods.getCdpTotalDebt(accounts[0]).call();
         setTotaldebt(totaldebited);
-        var collaterallimit=await CFI.methods.collateralizationLimit().call();
+        var collaterallimit=await carbonfinancecontract.methods.collateralizationLimit().call();
         setAvalwithdraw(totaldep - (totaldebt * collaterallimit)/1000000000000000000);
         var av = (totaldep * 50)/100;
         var bb = av - totaldebt;
         setAvalborrow(bb);
-        setbusdbalance(await busd.methods.balanceOf(accounts[0]).call());
-        setcbusdbalance(await cbusd.methods.balanceOf(accounts[0]).call());
+        setbusdbalance(await busdcontract.methods.balanceOf(accounts[0]).call());
+        setcbusdbalance(await cbusdcontract.methods.balanceOf(accounts[0]).call());
   
-       setcbusdtotalsupply(await cbusd.methods.totalSupply().call());
+       setcbusdtotalsupply(await cbusdcontract.methods.totalSupply().call());
        
-        let a = await busd.methods.allowance(accounts[0],"0x238B7EBb221A307bd2a99bcDc6C169899733dce9").call();
+        let a = await busdcontract.methods.allowance(accounts[0],contracts.carbonfinance.address).call();
        if(a>0){
         setApp(true);
        }
@@ -78,7 +86,7 @@ const Vault = () => {
         setApp(false);
        }
       
-      let b= await cbusd.methods.allowance(accounts[0],"0x238B7EBb221A307bd2a99bcDc6C169899733dce9").call();
+      let b= await cbusdcontract.methods.allowance(accounts[0],contracts.carbonfinance.address).call();
       if(b>0){
         setAP(true);
       }
@@ -100,7 +108,7 @@ const Vault = () => {
         //console.log("value",x.toNumber());
         //var value = x.toNumber();
         if(parseInt(value)<=parseInt(busdbalance)){
-        await CFI.methods.deposit(web3.utils.toBN(value)).send({from:accounts[0]});
+        await carbonfinancecontract.methods.deposit(web3.utils.toBN(value)).send({from:accounts[0]});
         overall()
         setIsOpen(true);
         
@@ -121,7 +129,7 @@ const Vault = () => {
         // console.log("value",x.toNumber());
         // var value = x.toNumber();
         if(parseInt(value)<=parseInt(avatokentowithdraw)){
-        await CFI.methods.withdraw(web3.utils.toBN(value)).send({from:accounts[0]});
+        await carbonfinancecontract.methods.withdraw(web3.utils.toBN(value)).send({from:accounts[0]});
         overall()
         setIsOpen(true);
         setDis("Withdrawn Succesfully!")
@@ -142,7 +150,7 @@ const Vault = () => {
     //    var value = x.toNumber();
 
        if(parseInt(value)<=parseInt(avaltoborrow)){
-        await CFI.methods.mint(web3.utils.toBN(value)).send({from:accounts[0]});
+        await carbonfinancecontract.methods.mint(web3.utils.toBN(value)).send({from:accounts[0]});
         overall()
         setIsOpen(true);       
         setDis("Borrowed Succesfully!");
@@ -172,7 +180,7 @@ const Vault = () => {
         else{
         
         if(parseInt(value)<=parseInt(cbusdbalance)){
-            await CFI.methods.repay(0,web3.utils.toBN(value)).send({from:accounts[0]});
+            await carbonfinancecontract.methods.repay(0,web3.utils.toBN(value)).send({from:accounts[0]});
             overall()
             setIsOpen(true);
             setDis("Borrowed amount is repayed By using CBUSD")
@@ -197,7 +205,7 @@ const Vault = () => {
         else{
           
             if(parseInt(value)<=parseInt(busdbalance)){
-        await CFI.methods.repay(web3.utils.toBN(value),0).send({from:accounts[0]});
+        await carbonfinancecontract.methods.repay(web3.utils.toBN(value),0).send({from:accounts[0]});
         overall()
         setIsOpen(true);
         setDis("Borrowed amount is repayed By using BUSD")
@@ -221,7 +229,7 @@ const Vault = () => {
     //    console.log("value",x.toNumber());
     //    var value = x.toNumber();
         if(parseInt(value)<=parseInt(totaldep)){
-            await CFI.methods.liquidate(web3.utils.toBN(value)).send({from:accounts[0]});
+            await carbonfinancecontract.methods.liquidate(web3.utils.toBN(value)).send({from:accounts[0]});
             overall()
             setIsOpen(true);
             setDis("Liquidated Succesfully!")
@@ -513,7 +521,7 @@ const Vault = () => {
       const approve = async() => {
         let account = await web3.eth.getAccounts();
         let amount = 1000000000000000000 +"0000000000"; 
-        await busd.methods.approve("0x238B7EBb221A307bd2a99bcDc6C169899733dce9",amount).send({from:account[0]});
+        await busdcontract.methods.approve(contracts.carbonfinance.address,amount).send({from:account[0]});
         //bal()
         overall();
         setIsOpen(true);
@@ -523,7 +531,7 @@ const Vault = () => {
       const approv = async() => {
         let account = await web3.eth.getAccounts();
         let amount =  1000000000000000000 +"000000000000000000"; 
-        await cbusd.methods.approve("0x238B7EBb221A307bd2a99bcDc6C169899733dce9",amount).send({from:account[0]});
+        await cbusdcontract.methods.approve(contracts.carbonfinance.address,amount).send({from:account[0]});
         //bal()
         overall();
         setIsOpen(true);
