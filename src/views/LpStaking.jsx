@@ -3,14 +3,19 @@ import { useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { Button, Dropdown, Card, Col, Container, DropdownItem, DropdownMenu, DropdownToggle, Input, InputGroup, InputGroupAddon, InputGroupButtonDropdown, InputGroupText, Row, Table } from "reactstrap";
 import web3 from "../web3";
-import swap from "./swapAbi";
-import cbusd from "./cbusdAbi";
-import lpstake from "./lpStakingAbi";
-import black from "./blackAbi";
-import lppair from "./lptokenAbi";
+//import swap from "./swapAbi";
+//import cbusd from "./cbusdAbi";
+//import lpstake from "./lpStakingAbi";
+//import black from "./blackAbi";
+//import lppair from "./lptokenAbi";
 import Modald from "../ModalD";
 import FolowStepsd from "../FolowStepsd";
 import BigNumber from "bignumber.js";
+
+
+import { contracts } from './contractAddress';
+import {blackabi, cbusdbusdpair,lpstake } from './abi';
+
 const Lpstake = () => {
     let [activeTab, setActiveTab] = useState("Deposit");
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -44,19 +49,40 @@ const Lpstake = () => {
     const [Remainingamount ,setRemainingamount]=useState(""); 
     const [isOpen, setIsOpen] = useState(false);
     var[dis,setDis] = useState("");
+    const[stakeenddate,setStakeendDate]=useState('');
     const toggleDropDown = () => setDropdownOpen(!dropdownOpen);
     const toggle1 = () => setDropdownOpen1(!dropdownOpen1);
     let history = useHistory();
+
+    const lpstakecontract = new web3.eth.Contract(lpstake, contracts.lpstake.address);
+    const blackcontract = new web3.eth.Contract(blackabi, contracts.black.address);
+    const cbusdbusdpaircontract = new web3.eth.Contract(cbusdbusdpair, contracts.cbusdbusdpair.address);
+    useEffect(() => {
+        const fetchPosts = async () => {
+            var  currentdate=(new Date().getTime())/1000;
+            var enddatediff =1632491910-currentdate;
+            if(enddatediff>0){
+                setStakeendDate(1);
+        
+            }
+            else{
+                setStakeendDate(0);
+                console.log("enddate",stakeenddate);
+            }
+        
+        };
     
+        fetchPosts();
+      }, []);
  const first = async () => {
     if(localStorage.getItem("wallet")>0){
     const accounts =  await web3.eth.getAccounts();
  
     //setcbusdbalance(await cbusd.methods.balanceOf(accounts[0]).call());  
-    setLpbalance(await lppair.methods.balanceOf(accounts[0]).call());  
+    setLpbalance(await cbusdbusdpaircontract.methods.balanceOf(accounts[0]).call());  
 
     
-    let b= await lppair.methods.allowance(accounts[0],"0x801BE19F7963A0d0656FA48039125cf956Db42b5").call();
+    let b= await cbusdbusdpaircontract.methods.allowance(accounts[0],contracts.lpstake.address).call();
  
     if(b>0){
       setAP(true);
@@ -65,16 +91,16 @@ const Lpstake = () => {
       setAP(false);
     }
     //setValues(await swap.methods.userInfo(accounts[0]).call());
-    setStaked(await lpstake.methods.userInfo(accounts[0]).call());
-    setReward(await lpstake.methods.pendingBlack(accounts[0]).call());
-    var stakedamount=await lpstake.methods.getHoldersRunningStakeBalance().call({from:accounts[0]});
+    setStaked(await lpstakecontract.methods.userInfo(accounts[0]).call());
+    setReward(await lpstakecontract.methods.pendingBlack(accounts[0]).call());
+    var stakedamount=await lpstakecontract.methods.getHoldersRunningStakeBalance().call({from:accounts[0]});
     console.log("stakedamount",stakedamount);
     var Remainingamount=1000000000000000000000000-stakedamount;
     setRemainingamount(Remainingamount);
-    setBlackBalance(await black.methods.balanceOf(accounts[0]).call());
-    setStakeLock(await lpstake.methods.lock(accounts[0]).call());
-    var secondsleft =await lpstake.methods.secondsLeft(accounts[0]).call();
-    var us =await lpstake.methods.holderUnstakeRemainingTime(accounts[0]).call();
+    setBlackBalance(await blackcontract.methods.balanceOf(accounts[0]).call());
+    setStakeLock(await lpstakecontract.methods.lock(accounts[0]).call());
+    var secondsleft =await lpstakecontract.methods.secondsLeft(accounts[0]).call();
+    var us =await lpstakecontract.methods.holderUnstakeRemainingTime(accounts[0]).call();
     var now = new Date().getTime();
     if(us<=now){
     setlock(true);
@@ -83,7 +109,7 @@ const Lpstake = () => {
       setlock(false);
     }
     
-    var us=await lpstake.methods.holderUnstakeRemainingTime(accounts[0]).call();
+    var us=await lpstakecontract.methods.holderUnstakeRemainingTime(accounts[0]).call();
     var sl=(secondsleft *1000);
     var lockedtime=sl+now;
     console.log("secondsleft",lockedtime);
@@ -179,7 +205,7 @@ const Lpstake = () => {
          //console.log("stakelim",stakelimitamount);
         if(parseInt(value)<=parseInt(lpbalance)){
             if(parseInt(value)<(Remainingamount)){
-                await lpstake.methods.deposit(web3.utils.toBN(value)).send({from:accounts[0]});      
+                await lpstakecontract.methods.deposit(web3.utils.toBN(value)).send({from:accounts[0]});      
                 setIsOpen(true);
                 setDis("Staked Succesfully")
                 first();
@@ -208,7 +234,7 @@ const Lpstake = () => {
         // console.log("value",x.toNumber());
         // var value = x.toNumber();
         if(parseInt(value)<=parseInt(staked[0])){
-            await lpstake.methods.withdraw(web3.utils.toBN(value)).send({from:accounts[0]});
+            await lpstakecontract.methods.withdraw(web3.utils.toBN(value)).send({from:accounts[0]});
             setIsOpen(true);
             setDis("Unstaked Succesfully")
             first()
@@ -224,7 +250,7 @@ const Lpstake = () => {
         event.preventDefault();
         if(parseInt(reward) >parseInt(100000000000)){
             const accounts =  await web3.eth.getAccounts();
-            await lpstake.methods.claimReward().send({from:accounts[0]});    
+            await lpstakecontract.methods.claimReward().send({from:accounts[0]});    
             setIsOpen(true);
             setDis("Rewards Claimed Successfully") 
         }
@@ -239,7 +265,7 @@ const Lpstake = () => {
       const emergencywithdraw = async(event) => {
         event.preventDefault();
         const accounts =  await web3.eth.getAccounts();
-        await lpstake.methods.emergencyWithdraw().send({from:accounts[0]});        
+        await lpstakecontract.methods.emergencyWithdraw().send({from:accounts[0]});        
         first()
       }
     
@@ -330,7 +356,7 @@ const Lpstake = () => {
       const approve = async() => {
         let account = await web3.eth.getAccounts();
         let amount = 1000000000000000000 +"000000000000000000"; 
-        await lppair.methods.approve("0x801BE19F7963A0d0656FA48039125cf956Db42b5",amount).send({from:account[0]});
+        await cbusdbusdpaircontract.methods.approve(contracts.lpstake.address,amount).send({from:account[0]});
         first()
         setIsOpen(true);
         setDis("Approved Succesfully")
@@ -379,6 +405,27 @@ const Lpstake = () => {
                                 <Container fluid>
                                     <Row>
                                         <Col xl="6" md="12">
+                                        {stakeenddate===1 ?
+                                        (<> 
+                                         <InputGroup className="mt-3">
+                                                <Input placeholder={depositpercent} style={{ height: "auto" }}type = "number" id="tid1"  />
+                                                <InputGroupAddon addonType="append"><Button color="site-primary" >stake</Button></InputGroupAddon>
+                                            </InputGroup>
+                                            <div className="percentage smaller">
+                                                <div className="percentage-item" >25%</div>
+                                                <div className="percentage-item" >50%</div>
+                                                <div className="percentage-item" >75%</div>
+                                                <div className="percentage-item" >100%</div>
+                                            </div>
+                                        
+                                        </>):(<> 
+
+                                            <InputGroup className="mt-3">
+                                               
+                                                <InputGroupAddon addonType="append"><Button color="site-primary" style={{marginLeft:"40px"}}>STAKING POOL IS ENDED</Button></InputGroupAddon>
+                                            </InputGroup>
+                                           
+                                        </>)}
                                             <InputGroup className="mt-3">
                                                 <Input placeholder={depositpercent} style={{ height: "auto" }}type = "number" id="tid1"  />
                                                 <InputGroupAddon addonType="append"><Button color="site-primary" >stake</Button></InputGroupAddon>
@@ -473,7 +520,10 @@ const Lpstake = () => {
                                         { stakelock === false ? ((
 
 <div>
-                                            <InputGroup className="mt-3">
+{stakeenddate===1 ?
+
+(<>
+ <InputGroup className="mt-3">
                                                 <Input placeholder={depositpercent} style={{ height: "auto" }}type = "number" id="tid1"  />
                                                 <InputGroupAddon addonType="append"><Button color="site-primary" onClick={deposit}>stake</Button></InputGroupAddon>
                                             </InputGroup>
@@ -483,6 +533,19 @@ const Lpstake = () => {
                                                 <div className="percentage-item" onClick={balancepercent2}>75%</div>
                                                 <div className="percentage-item" onClick={balancepercent3}>100%</div>
                                             </div>
+
+
+</>):(<>   
+
+    <InputGroup className="mt-3">
+                                                
+                                                <InputGroupAddon addonType="append"><Button color="site-primary"style={{marginLeft:"40px"}}>STAKING POOL IS ENDED</Button></InputGroupAddon>
+                                            </InputGroup>
+                                           
+
+</>)
+}
+                                           
                                             </div>
                                    )) :((<>
 

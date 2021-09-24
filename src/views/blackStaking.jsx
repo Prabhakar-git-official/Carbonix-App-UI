@@ -50,9 +50,27 @@ const Blackstake = () => {
     let history = useHistory();
     const [isOpen, setIsOpen] = useState(false);
     var[dis,setDis] = useState("");
+    const[stakeenddate,setStakeendDate]=useState('');
     const blackcontract = new web3.eth.Contract(blackabi, contracts.black.address);
     const blackstakecontract = new web3.eth.Contract(blackstake, contracts.blackstake.address);
-
+    
+    useEffect(() => {
+        const fetchPosts = async () => {
+            var  currentdate=(new Date().getTime())/1000;
+            var enddatediff =1632491910-currentdate;
+            if(enddatediff>0){
+                setStakeendDate(1);
+        
+            }
+            else{
+                setStakeendDate(0);
+                console.log("enddate",stakeenddate);
+            }
+        
+        };
+    
+        fetchPosts();
+      }, []);
  const first = async () => {
     if(localStorage.getItem("wallet")>0){
     
@@ -391,6 +409,7 @@ const Blackstake = () => {
                                 <Container fluid>
                                     <Row>
                                         <Col xl="6" md="12">
+                                        {stakeenddate===1 ?(<>
                                             <InputGroup className="mt-3">
                                                 <Input placeholder={depositpercent} style={{ height: "auto" }}type = "number" id="tid1"  />
                                                 <InputGroupAddon addonType="append"><Button color="site-primary" >stake</Button></InputGroupAddon>
@@ -401,6 +420,16 @@ const Blackstake = () => {
                                                 <div className="percentage-item" >75%</div>
                                                 <div className="percentage-item" >100%</div>
                                             </div>
+                                        </>):(<>
+
+                                            <InputGroup className="mt-3">
+                                                
+                                                <InputGroupAddon addonType="append"><Button color="site-primary" style={{marginLeft:"40px"}} >STAKING POOl IS ENDED</Button></InputGroupAddon>
+                                            </InputGroup>
+                                           
+                                        </>)
+                                        }
+                                            
                                         </Col>
                                         <Col xl="6" md="12">
                                        
@@ -486,7 +515,9 @@ const Blackstake = () => {
                                             { stakelock === false ? ((
 
                                    <div>
-                                            <InputGroup className="mt-3">
+                                       {stakeenddate===1 ?
+                                       (<>
+                                       <InputGroup className="mt-3">
                                                 <Input placeholder={depositpercent} style={{ height: "auto" }}type = "number" id="tid1"  />
                                                 <InputGroupAddon addonType="append"><Button color="site-primary" onClick={deposit}>stake</Button></InputGroupAddon>
                                             </InputGroup>
@@ -496,6 +527,17 @@ const Blackstake = () => {
                                                 <div className="percentage-item" onClick={balancepercent2}>75%</div>
                                                 <div className="percentage-item" onClick={balancepercent3}>100%</div>
                                             </div>
+                                       
+                                       </>):(<>
+                                       
+                                        <InputGroup className="mt-3">
+                                                
+                                                <InputGroupAddon addonType="append"><Button color="site-primary" style={{marginLeft:"40px"}} >STAKING POOL IS ENDED</Button></InputGroupAddon>
+                                            </InputGroup>
+                                           
+                                       
+                                       </>)}
+                                            
                                             </div>
                                    )) :((<>
 

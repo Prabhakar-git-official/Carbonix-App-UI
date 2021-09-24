@@ -106,7 +106,7 @@ const Pools = () => {
         setAprlp(aprlp);
         console.log("aprvaluelp",((totalRewardPricePerYearlp)/(totalStakingTokenInPoollp))*(100));
         var  currentdate=(new Date().getTime())/1000;
-        var enddatediff =1632399560-currentdate;
+        var enddatediff =1632491910-currentdate;
         if(enddatediff>0){
             setStakeendDate(1);
 
